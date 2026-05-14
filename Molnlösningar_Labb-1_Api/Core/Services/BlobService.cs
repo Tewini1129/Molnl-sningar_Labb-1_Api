@@ -10,7 +10,7 @@ namespace Molnlösningar_Labb_1_Api.Core.Services
         public BlobService(IConfiguration configuration)
         {
             var connectionString = configuration["StorageConnectionString"];
-            var containerName = "backuplabbtest";
+            var containerName = "backupslabbtest";
             var blobServiceClient = new BlobServiceClient(connectionString);
 
             _containerClient = blobServiceClient.GetBlobContainerClient(containerName);
