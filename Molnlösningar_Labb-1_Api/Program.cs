@@ -28,6 +28,7 @@ namespace Molnlösningar_Labb_1_Api
             builder.Services.AddControllers();
 
             var app = builder.Build();
+            Console.WriteLine("Triggering actions");
 
             app.MapControllers();
 
