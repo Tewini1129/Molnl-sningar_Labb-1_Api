@@ -7,7 +7,6 @@ storagename="storage$(date +%s)"
 containername="backups${name}"
 expiry=$(date -u -d "+1 day" +"%Y-%m-%dT%H:%MZ")
 az account set --subscription "SUB-Utbildning-DotNetCloudDeveloper-2026-VT-Mars-Goteborg"
-echo "Current Azure Account:"
 az account show --output table
 userObjectId=$(az ad signed-in-user show --query id -o tsv)
 
@@ -64,9 +63,9 @@ echo $storageId
 echo "Now its time to Assign roles manually to web app and yourself"
 echo "1. Go to the Azure Portal"
 echo "2. Go to SQL database 'db-$name'"
-echo "3. Click on Set firewall rules and add your IP address then click save"
+echo "3. Click on Set firewall rules and replace the AlloweMyIP with your own IP address then click save"
 echo "4. Go to KeyVault '$keyvaultname'"
-echo "5. Click on Access controll and add a role assignment for 'Key Vault Secrets User' to the web app 'webapp-$name' and 'Key Vault Sercrets Officer' toyourself"
+echo "5. Click on Access controll and add a role assignment for 'Key Vault Secrets User' to the web app 'webapp-$name' and 'Key Vault Sercrets Officer' to yourself"
 echo "After that you can come back here and press enter to continue with the deployment"
 
 read -r
@@ -188,6 +187,17 @@ az sql server firewall-rule create --resource-group $resourceGroup --server "ser
 
 az sql server firewall-rule create --resource-group $resourceGroup --server "server-$name" --name AllowAzureServices --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
 
+echo "Now its time to enable SCM Basic Auth Publishing Credentials and FTP Basic Auth Publishing Credentials"
+echo "1. Go to the Azure Portal"
+echo "2. Go to Web App 'webapp-$name'"
+echo "3. Click on Settings > Configuration > General settings and enable both 'Scm Basic Auth Publishing Credentials' and 'FTP Basic Auth Publishing Credentials' then hit apply"
+echo "Now wait 30 seconds"
+echo "4. Then download publishing profile and replace the credentials in the secret inside the github repository with the name 'AZURE_WEBAPP_PUBLISH_PROFILE' with the value of the file you downloaded"
+
+echo "If you get error code 403 IP Forbidden, then you follow these steps"
+echo "Go into your web app > settings > Networking > Access Restrictions > change the AllowMyIP Ip address to your own and save, wait 30 seconds and try again"
+
+echo "Thats it!"
 
 
 
@@ -204,10 +214,5 @@ git push -u origin main
 az webapp deployment list-publishing-profiles --name "webapp-$name" --resource-group $resourceGroup --xml
 
 
-echo "Now its time to enable SCM Basic Auth Publishing Credentials and FTP Basic Auth Publishing Credentials"
-echo "1. Go to the Azure Portal"
-echo "2. Go to Web App 'webapp-$name'"
-echo "3. Click on Settings > Configuration > General settings and enable both 'Scm Basic Auth Publishing Credentials' and 'FTP Basic Auth Publishing Credentials'"
-echo "4. Thats it! You can now deploy your code using FTP or Local Git. You can also use the publishing profile to deploy using Visual Studio or Github Actions"
 
 
