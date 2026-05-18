@@ -87,9 +87,10 @@ echo "After that you can come back here and press enter to continue with the dep
 
 read -r
 
-
 echo "Getting account key..."
 accountKey=$STORAGE_KEY
+
+
 
 # Get storage connection string
 storageConnStr=$(az storage account show-connection-string \
