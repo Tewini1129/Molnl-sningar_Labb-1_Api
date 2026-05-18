@@ -18,54 +18,71 @@ az account show --output table
 set -e
 
 # Create Sql Server
-az sql server create --name "server-$name" --resource-group $resourceGroup --location $location --admin-user tewini1129 --admin-password $SQL_ADMIN_PASSWORD
+az sql server create --name "server-$name" \
+ --resource-group $resourceGroup \
+ --location $location \
+ --admin-user tewini1129 \
+ --admin-password $SQL_ADMIN_PASSWORD
 
 # Create Database
-az sql db create --resource-group $resourceGroup --server "server-$name" --name "db-"$name --edition GeneralPurpose --family Gen5 --capacity 1 --compute-model Serverless --auto-pause-delay 60
+az sql db create --resource-group $resourceGroup \
+ --server "server-$name" \
+ --name "db-$name" \
+ --edition GeneralPurpose \
+ --family Gen5 \
+ --capacity 1 \
+ --compute-model Serverless \
+ --auto-pause-delay 60
 
 # Create Key Vault
-az keyvault create --name $keyvaultname  --resource-group $resourceGroup --location $location --enable-rbac-authorization true 
+az keyvault create --name $keyvaultname \
+ --resource-group $resourceGroup \
+ --location $location \
+ --enable-rbac-authorization true 
 sleep 10
 
 # Create App Service Plan
-az appservice plan create --name "appservice-plan-$name" --resource-group $resourceGroup --sku S1 --is-linux  
+az appservice plan create --name "appservice-plan-$name" \
+ --resource-group $resourceGroup \
+ --sku S1 \
+ --is-linux  
 
 # Create App Service
-az webapp create --name "webapp-$name" --resource-group $resourceGroup --plan "appservice-plan-$name" --runtime "DOTNETCORE:8.0"  
+az webapp create --name "webapp-$name" \
+ --resource-group $resourceGroup \
+ --plan "appservice-plan-$name" \
+ --runtime "DOTNETCORE:8.0"  
 
-az webapp identity assign --name "webapp-$name" --resource-group $resourceGroup
+az webapp identity assign --name "webapp-$name" \
+ --resource-group $resourceGroup
 
 # Create Storage Account
-az storage account create --name $storagename --resource-group $resourceGroup --location $location --sku Standard_LRS --min-tls-version TLS1_2
+az storage account create --name $storagename \
+ --resource-group $resourceGroup \
+ --location $location \
+ --sku Standard_LRS \
+ --min-tls-version TLS1_2
 
-echo "Storage Name:"
-echo $storagename
+
 
 echo "Waiting for storage account to be ready..."
 sleep 30
 
-storageId=$(az storage account show --name $storagename --resource-group $resourceGroup --query id -o tsv)
-
-echo "Storage ID:"
-echo $storageId
-
-userObjectId=$(az ad signed-in-user show --query id -o tsv)
-
-echo "USER OBJECT ID:"
-echo $userObjectId
-
-storageId=$(az storage account show --name $storagename --resource-group $resourceGroup --query id -o tsv)
-
-echo "Storage ID:"
-echo $storageId
+storageId=$(az storage account show --name $storagename \
+ --resource-group $resourceGroup \
+ --query id -o tsv)
 
 
+
+# Add firewall-rule and assign role to web app and yourself
 echo "Now its time to Assign roles manually to web app and yourself"
 echo "1. Go to the Azure Portal"
 echo "2. Go to SQL database 'db-$name'"
-echo "3. Click on Set firewall rules and replace the AlloweMyIP with your own IP address then click save"
+echo "3. Click on Set firewall rules and replace the AlloweMyIP with your own IP address
+            then click save"
 echo "4. Go to KeyVault '$keyvaultname'"
-echo "5. Click on Access controll and add a role assignment for 'Key Vault Secrets User' to the web app 'webapp-$name' and 'Key Vault Sercrets Officer' to yourself"
+echo "5. Click on Access controll and add a role assignment for 'Key Vault Secrets User' 
+            to the web app 'webapp-$name' and 'Key Vault Sercrets Officer' to yourself"
 echo "After that you can come back here and press enter to continue with the deployment"
 
 read -r
@@ -74,22 +91,25 @@ read -r
 echo "Getting account key..."
 accountKey=$STORAGE_KEY
 
-echo "AccountKey: $accountKey"
-
 # Get storage connection string
-storageConnStr=$(az storage account show-connection-string --name $storagename --resource-group $resourceGroup --query connectionString -o tsv)
+storageConnStr=$(az storage account show-connection-string \
+ --name $storagename \
+ --resource-group $resourceGroup \
+ --query connectionString -o tsv)
 
 
 
 # Create storage container
-az storage container create --name "$containername" --account-name $storagename --account-key "$accountKey"
+az storage container create --name "$containername" \
+ --account-name $storagename \
+ --account-key "$accountKey"
 echo "Waiting 30 seconds for storage account provisioning..."
 sleep 30
 
 
 
 
-# Generate SAS using key (NOT RBAC)
+# Generate SAS using key
 echo "Generating SAS token..."
 sasToken=$(az storage container generate-sas --account-name $storagename --account-key $accountKey --name "$containername" --permissions rwdl --expiry $expiry -o tsv)
 
@@ -117,16 +137,20 @@ fi
 containerUrl="https://${storagename}.blob.core.windows.net/${containername}?${sasToken}"
 
 sleep 20
-az webapp config backup create --resource-group $resourceGroup --webapp-name "webapp-$name" --container-url $containerUrl
+az webapp config backup create --resource-group $resourceGroup \
+ --webapp-name "webapp-$name" --container-url $containerUrl
 
 
 #Keep updating backup
-az webapp config backup update --resource-group $resourceGroup --webapp-name "webapp-$name" --container-url $containerUrl --frequency 1d --retain-one true --retention 30
+az webapp config backup update --resource-group $resourceGroup \
+ --webapp-name "webapp-$name" \
+ --container-url $containerUrl \
+ --frequency 1d \
+ --retain-one true \
+ --retention 30
 
 
-#-----/|\-------
-#------|--------
-#try all code above in one go
+
 
 
 
@@ -152,25 +176,40 @@ echo "Assigning Key Vault roles..."
 
 
 sleep 10
-az keyvault secret set --vault-name $keyvaultname --name "DbConnectionString" --value "$connStr"
+az keyvault secret set --vault-name $keyvaultname \
+ --name "DbConnectionString" \
+ --value "$connStr"
 
 
-az webapp config appsettings set --name "webapp-$name" --resource-group $resourceGroup --settings KeyVaultUri="https://$keyvaultname.vault.azure.net/"
+az webapp config appsettings set --name "webapp-$name" \
+ --resource-group $resourceGroup \
+ --settings KeyVaultUri="https://$keyvaultname.vault.azure.net/"
 
-az keyvault secret set --vault-name $keyvaultname --name "StorageConnectionString" --value "$storageConnStr"
+az keyvault secret set --vault-name $keyvaultname \
+ --name "StorageConnectionString" \
+ --value "$storageConnStr"
 
 
 # Upload to container
 echo "Hello blob storage" > test.txt
 
-az storage blob upload --account-name $storagename --account-key "$accountKey" --container-name "$containername" --name "test.txt" --file "./test.txt"
+az storage blob upload --account-name $storagename \
+ --account-key "$accountKey" \
+ --container-name "$containername" \
+--name "test.txt" \
+ --file "./test.txt"
 
 # Create Insight
-az monitor app-insights component create --app "appi-$name" --location $location --resource-group $resourceGroup --application-type web
+az monitor app-insights component create --app "appi-$name" \
+ --location $location \
+ --resource-group $resourceGroup \
+ --application-type web
 
 connectionString=$(az monitor app-insights component show --app "appi-$name" --resource-group $resourceGroup --query connectionString --output tsv)
 
-az webapp config appsettings set --name "webapp-$name" --resource-group $resourceGroup --settings APPLICATIONINSIGHTS_CONNECTION_STRING="$connectionString"
+az webapp config appsettings set --name "webapp-$name" \
+ --resource-group $resourceGroup \
+ --settings APPLICATIONINSIGHTS_CONNECTION_STRING="$connectionString"
 
 
 # Add Logging
@@ -178,14 +217,35 @@ az webapp config appsettings set --name "webapp-$name" --resource-group $resourc
 
 
 # Add Security
-az webapp update --name "webapp-$name" --resource-group $resourceGroup --https-only true
+az webapp update --name "webapp-$name" \
+ --resource-group $resourceGroup \
+ --https-only true
 
-az webapp config access-restriction add --resource-group $resourceGroup --name "webapp-$name" --rule-name AllowMyIP --action Allow --ip-address 94.255.134.207 --priority 100
+az webapp config access-restriction add --resource-group $resourceGroup \
+ --name "webapp-$name" \
+ --rule-name AllowMyIP \
+ --action Allow \
+ --ip-address 94.255.134.207 \
+ --priority 100
 
 #Create firewall-rule 
-az sql server firewall-rule create --resource-group $resourceGroup --server "server-$name" --name AllowMyIP --start-ip-address 94.255.134.207 --end-ip-address 94.255.134.207
+az sql server firewall-rule create --resource-group $resourceGroup \
+ --server "server-$name" \
+ --name AllowMyIP \
+ --start-ip-address 94.255.134.207 \
+ --end-ip-address 94.255.134.207
 
-az sql server firewall-rule create --resource-group $resourceGroup --server "server-$name" --name AllowAzureServices --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+az sql server firewall-rule create --resource-group $resourceGroup \
+ --server "server-$name" \
+ --name MyBulgarianIP \
+ --start-ip-address 94.236.153.4 \
+ --end-ip-address 94.236.153.4
+
+az sql server firewall-rule create --resource-group $resourceGroup \
+ --server "server-$name" \
+ --name AllowAzureServices \
+ --start-ip-address 0.0.0.0 \
+ --end-ip-address 0.0.0.0
 
 echo "Now its time to enable SCM Basic Auth Publishing Credentials and FTP Basic Auth Publishing Credentials"
 echo "1. Go to the Azure Portal"
@@ -211,7 +271,9 @@ git push -u origin main
 
 
 # deploy to app service
-az webapp deployment list-publishing-profiles --name "webapp-$name" --resource-group $resourceGroup --xml
+az webapp deployment list-publishing-profiles --name "webapp-$name" \
+ --resource-group $resourceGroup \
+ --xml
 
 
 
