@@ -1,4 +1,5 @@
 # ----Variables----
+source secrets.env
 resourceGroup="RG-William-Nilsson-b634ed-DotNetCloudDeveloper-VT-Mars-Goteborg"
 location="westeurope"
 name="labbtest"
@@ -17,7 +18,7 @@ az account show --output table
 set -e
 
 # Create Sql Server
-az sql server create --name "server-$name" --resource-group $resourceGroup --location $location --admin-user tewini1129 --admin-password WiNi6287!
+az sql server create --name "server-$name" --resource-group $resourceGroup --location $location --admin-user tewini1129 --admin-password $SQL_ADMIN_PASSWORD
 
 # Create Database
 az sql db create --resource-group $resourceGroup --server "server-$name" --name "db-"$name --edition GeneralPurpose --family Gen5 --capacity 1 --compute-model Serverless --auto-pause-delay 60
@@ -71,7 +72,7 @@ read -r
 
 
 echo "Getting account key..."
-accountKey=$(az storage account keys list --account-name $storagename --resource-group $resourceGroup --query "[0].value" -o tsv)
+accountKey=$STORAGE_KEY
 
 echo "AccountKey: $accountKey"
 
@@ -133,7 +134,7 @@ az webapp config backup update --resource-group $resourceGroup --webapp-name "we
 # ----ADJUSTMENTS----
 
 # Add Secrets
-connStr="Server=tcp:server-$name.database.windows.net,1433;Initial Catalog=db-$name;Persist Security Info=False;User ID=tewini1129;Password=WiNi6287!;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+connStr=$DB_CONNECTION_STRING
 
 az webapp identity assign --name "webapp-$name" --resource-group $resourceGroup
 
