@@ -8,7 +8,6 @@ containername="backups${name}"
 expiry=$(date -u -d "+1 day" +"%Y-%m-%dT%H:%MZ")
 az account set --subscription "SUB-Utbildning-DotNetCloudDeveloper-2026-VT-Mars-Goteborg"
 az account show --output table
-userObjectId=$(az ad signed-in-user show --query id -o tsv)
 
 
 
