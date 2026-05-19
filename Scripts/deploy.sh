@@ -112,9 +112,12 @@ sleep 30
 
 # Generate SAS using key
 echo "Generating SAS token..."
-sasToken=$(az storage container generate-sas --account-name $storagename --account-key $accountKey --name "$containername" --permissions rwdl --expiry $expiry -o tsv)
-
-echo "SAS TOKEN: $sasToken"
+sasToken=$(az storage container generate-sas --account-name $storagename \
+ --account-key $accountKey \
+ --name "$containername" \
+ --permissions rwdl \
+ --expiry $expiry \
+ -o tsv)
 
 if [ -z "$sasToken" ]; then
   echo "ERROR: SAS token is EMPTY"
@@ -126,18 +129,9 @@ fi
 containerUrl="https://${storagename}.blob.core.windows.net/${containername}?${sasToken}"
 
 
-#Dubbel checking if URL is correct
-echo "CONTAINER URL:"
-echo "$containerUrl"
-
-if [ -z "$sasToken" ]; then
-  echo "ERROR: SAS token is empty"
-  exit 1
-fi
-
-containerUrl="https://${storagename}.blob.core.windows.net/${containername}?${sasToken}"
-
 sleep 20
+
+
 az webapp config backup create --resource-group $resourceGroup \
  --webapp-name "webapp-$name" --container-url $containerUrl
 
