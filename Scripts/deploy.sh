@@ -162,9 +162,6 @@ userPrincipalName=$(az account show --query user.name -o tsv)
 
 keyVaultId=$(az keyvault show --name $keyvaultname --resource-group $resourceGroup --query id -o tsv)
 
-echo "KeyVault ID:"
-echo $keyVaultId
-
 echo "Assigning Key Vault roles..."
 
 
