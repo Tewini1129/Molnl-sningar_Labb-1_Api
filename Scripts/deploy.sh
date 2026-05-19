@@ -130,8 +130,6 @@ containerUrl="https://${storagename}.blob.core.windows.net/${containername}?${sa
 
 
 sleep 20
-
-
 az webapp config backup create --resource-group $resourceGroup \
  --webapp-name "webapp-$name" --container-url $containerUrl
 
