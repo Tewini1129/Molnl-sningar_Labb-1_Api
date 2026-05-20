@@ -3,7 +3,11 @@ source ./Scripts/secrets.env
 resourceGroup="RG-William-Nilsson-b634ed-DotNetCloudDeveloper-VT-Mars-Goteborg"
 location="westeurope"
 name="labbtest"
-connStr="Server=tcp:server-$name.database.windows.net,1433;Initial Catalog=db-$name;Persist Security Info=False;User ID=tewini1129;Password=$SQL_ADMIN_PASSWORD;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+connStr="Server=tcp:server-$name.database.windows.net,1433;Initial Catalog=db-$name;
+            Persist Security Info=False;User ID=tewini1129;Password=$SQL_ADMIN_PASSWORD;
+            MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;
+            Connection Timeout=30;"
+            
 keyvaultname="kv$(date +%s)"
 storagename="storage$(date +%s)"
 containername="backups${name}"
