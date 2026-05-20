@@ -3,6 +3,7 @@ source ./Scripts/secrets.env
 resourceGroup="RG-William-Nilsson-b634ed-DotNetCloudDeveloper-VT-Mars-Goteborg"
 location="westeurope"
 name="labbtest"
+connStr="Server=tcp:server-$name.database.windows.net,1433;Initial Catalog=db-$name;Persist Security Info=False;User ID=tewini1129;Password=$SQL_ADMIN_PASSWORD;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 keyvaultname="kv$(date +%s)"
 storagename="storage$(date +%s)"
 containername="backups${name}"
@@ -152,8 +153,6 @@ az webapp config backup update --resource-group $resourceGroup \
 # ----ADJUSTMENTS----
 
 # Add Secrets
-connStr=$DB_CONNECTION_STRING
-
 az webapp identity assign --name "webapp-$name" --resource-group $resourceGroup
 
 sleep 30
@@ -211,12 +210,6 @@ az webapp update --name "webapp-$name" \
  --resource-group $resourceGroup \
  --https-only true
 
-az webapp config access-restriction add --resource-group $resourceGroup \
- --name "webapp-$name" \
- --rule-name AllowMyIP \
- --action Allow \
- --ip-address 94.255.134.207 \
- --priority 100
 
 #Create firewall-rule 
 az sql server firewall-rule create --resource-group $resourceGroup \
