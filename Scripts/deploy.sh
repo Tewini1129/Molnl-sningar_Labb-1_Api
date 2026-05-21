@@ -1,8 +1,13 @@
 # ----Variables----
-source secrets.env
+source ./Scripts/secrets.env
 resourceGroup="RG-William-Nilsson-b634ed-DotNetCloudDeveloper-VT-Mars-Goteborg"
 location="westeurope"
 name="labbtest"
+connStr="Server=tcp:server-$name.database.windows.net,1433;Initial Catalog=db-$name;
+            Persist Security Info=False;User ID=tewini1129;Password=$SQL_ADMIN_PASSWORD;
+            MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;
+            Connection Timeout=30;"
+            
 keyvaultname="kv$(date +%s)"
 storagename="storage$(date +%s)"
 containername="backups${name}"
@@ -74,21 +79,22 @@ storageId=$(az storage account show --name $storagename \
 
 
 
-# Add firewall-rule and assign role to web app and yourself
+# Assign role to web app and yourself
 echo "Now its time to Assign roles manually to web app and yourself"
-echo "1. Go to the Azure Portal"
-echo "2. Go to SQL database 'db-$name'"
-echo "3. Click on Set firewall rules and replace the AlloweMyIP with your own IP address
-            then click save"
-echo "4. Go to KeyVault '$keyvaultname'"
-echo "5. Click on Access controll and add a role assignment for 'Key Vault Secrets User' 
-            to the web app 'webapp-$name' and 'Key Vault Sercrets Officer' to yourself"
+echo "1. Go to KeyVault '$keyvaultname'"
+echo "2. Click on Access controll and add a role assignment for 'Key Vault Secrets User' to the web app 'webapp-$name' and 'Key Vault Sercrets Officer' to yourself"
 echo "After that you can come back here and press enter to continue with the deployment"
 
 read -r
 
 echo "Getting account key..."
-accountKey=$STORAGE_KEY
+
+accountKey=$(az storage account keys list \
+  --account-name $storagename \
+  --resource-group $resourceGroup \
+  --query "[0].value" -o tsv)
+
+echo "AccountKey: $accountKey"
 
 
 
@@ -151,8 +157,6 @@ az webapp config backup update --resource-group $resourceGroup \
 # ----ADJUSTMENTS----
 
 # Add Secrets
-connStr=$DB_CONNECTION_STRING
-
 az webapp identity assign --name "webapp-$name" --resource-group $resourceGroup
 
 sleep 30
@@ -195,15 +199,14 @@ az monitor app-insights component create --app "appi-$name" \
  --resource-group $resourceGroup \
  --application-type web
 
-connectionString=$(az monitor app-insights component show --app "appi-$name" --resource-group $resourceGroup --query connectionString --output tsv)
+connectionString=$(az monitor app-insights component show --app "appi-$name" \
+ --resource-group $resourceGroup \
+ --query connectionString \
+ --output tsv)
 
 az webapp config appsettings set --name "webapp-$name" \
  --resource-group $resourceGroup \
  --settings APPLICATIONINSIGHTS_CONNECTION_STRING="$connectionString"
-
-
-# Add Logging
-
 
 
 # Add Security
@@ -211,12 +214,6 @@ az webapp update --name "webapp-$name" \
  --resource-group $resourceGroup \
  --https-only true
 
-az webapp config access-restriction add --resource-group $resourceGroup \
- --name "webapp-$name" \
- --rule-name AllowMyIP \
- --action Allow \
- --ip-address 94.255.134.207 \
- --priority 100
 
 #Create firewall-rule 
 az sql server firewall-rule create --resource-group $resourceGroup \
@@ -237,15 +234,21 @@ az sql server firewall-rule create --resource-group $resourceGroup \
  --start-ip-address 0.0.0.0 \
  --end-ip-address 0.0.0.0
 
-echo "Now its time to enable SCM Basic Auth Publishing Credentials and FTP Basic Auth Publishing Credentials"
+echo "Now its time to enable SCM Basic Auth Publishing Credentials and
+         FTP Basic Auth Publishing Credentials"
 echo "1. Go to the Azure Portal"
 echo "2. Go to Web App 'webapp-$name'"
-echo "3. Click on Settings > Configuration > General settings and enable both 'Scm Basic Auth Publishing Credentials' and 'FTP Basic Auth Publishing Credentials' then hit apply"
+echo "3. Click on Settings > Configuration > General settings and enable
+        both 'Scm Basic Auth Publishing Credentials' and
+        'FTP Basic Auth Publishing Credentials' then hit apply"
 echo "Now wait 30 seconds"
-echo "4. Then download publishing profile and replace the credentials in the secret inside the github repository with the name 'AZURE_WEBAPP_PUBLISH_PROFILE' with the value of the file you downloaded"
+echo "4. Then download publishing profile and replace the credentials in
+         the secret inside the github repository with the name 
+         'AZURE_WEBAPP_PUBLISH_PROFILE' with the value of the file you downloaded"
 
 echo "If you get error code 403 IP Forbidden, then you follow these steps"
-echo "Go into your web app > settings > Networking > Access Restrictions > change the AllowMyIP Ip address to your own and save, wait 30 seconds and try again"
+echo "Go into your web app > settings > Networking > Access Restrictions > change
+         the AllowMyIP Ip address to your own and save, wait 30 seconds and try again"
 
 echo "Thats it!"
 
@@ -260,10 +263,6 @@ git remote add origin https://github.com/Tewini1129/Molnl-sningar_Labb-1_Api.git
 git push -u origin main
 
 
-# deploy to app service
-az webapp deployment list-publishing-profiles --name "webapp-$name" \
- --resource-group $resourceGroup \
- --xml
 
 
 
