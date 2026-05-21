@@ -22,5 +22,9 @@ namespace Molnlösningar_Labb_1_Api.Controllers
             var files = await _service.GetAllFilesAsync();
             return Ok(files);
         }
-    }
+        [HttpGet("HelloWorld")]
+        public IActionResult HelloWorld()
+        {
+            return Ok("Hello World");
+        }
 }
